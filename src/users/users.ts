@@ -1,34 +1,40 @@
 export interface IUser {
   name: string;
   index: string;
-  wins:number,
+  wins: number;
 }
 
-const users: IUser[] = [];
+interface IUserData extends IUser {
+  password: string;
+}
+
+const users: IUserData[] = [];
 
 export const getUsers = async (): Promise<IUser[]> => {
   return users;
 };
 
-export const getUserById = async (index:string):Promise<IUser | null> => {
-    const userIndex = users.findIndex((el) => el.index == index);
-    if(userIndex != -1)
-        return users[userIndex] 
-    else    
-        return null;
-}
+export const getUserById = async (index: string): Promise<IUser> => {
+  const userIndex = users.findIndex((el) => el.index == index);
+  return users[userIndex];
+};
 
-export const addUser = async (user: IUser): Promise<boolean> => {
-  const index = users.findIndex((el) => el.index == user.index);
+export const addUser = async (user: IUserData): Promise<boolean> => {
+  const index = users.findIndex((el) => el.name == user.name);
   if (index == -1) {
     users.push(user);
     return true;
   } else {
-    return false;
+    if (users[index].password == user.password) {
+      return true;
+    } else {
+      return false;
+    }
   }
+  return false;
 };
 
-export const deleteUser = async (user:IUser): Promise<void> => {
-    const index = users.findIndex((el) => el.index == user.index);
-    users.splice(index, 1);
-}
+export const deleteUser = async (index:string): Promise<void> => {
+  const fIndex = users.findIndex((el) => el.index == index);
+  users.splice(fIndex, 1);
+};
