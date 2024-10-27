@@ -11,6 +11,8 @@ import {
   handleUpdateRooms,
   handleCreateGame,
 } from './middleware/parseRooms.js';
+import { handleFirstTurn, handleStartGame } from './middleware/startGame.js';
+import { addGame, getUserTurn } from './games/games.js';
 
 const HTTP_PORT: string = process.env.HTTP_PORT || '8181';
 const WSPORT: string = process.env.PORT || '3000';
@@ -25,7 +27,7 @@ wsServer.on('connection', (ws) => {
   const clientId = crypto.randomUUID();
   clients.set(clientId, ws);
   ws.on('message', async (message) => {
-    console.log(`Received message: ${JSON.parse(message.toString())}`);
+    console.log(`Received message: ${message.toString()}`);
     const type = JSON.parse(message.toString()).type;
     switch (type) {
       case 'reg': {
@@ -42,14 +44,11 @@ wsServer.on('connection', (ws) => {
           password: body.password,
           wins: 0,
         });
-        console.log(isReg)
         if (isReg) {
           ws.send(JSON.stringify(response));
           const updateRes = await createUpdateResponse();
-          console.log(updateRes);
           broadcast(updateRes);
           const updateRoomRes = await handleUpdateRooms();
-          console.log(updateRoomRes);
           broadcast(updateRoomRes);
         }
         break;
@@ -73,22 +72,37 @@ wsServer.on('connection', (ws) => {
           const idGame = crypto.randomUUID();
           const firstPlayerId = crypto.randomUUID();
           const secondPlayerId = crypto.randomUUID();
+          await addGame({idGame:idGame, firstPlayerId:firstPlayerId, secondPlayerId:secondPlayerId, isFirst:true});
           const firstRequest = await handleCreateGame(idGame, firstPlayerId);
           const secondRequest = await handleCreateGame(idGame, secondPlayerId);
           ws.send(JSON.stringify(firstRequest));
           const secondClient = clients.get(secondUser.index);
           if (secondClient) {
             secondClient.send(JSON.stringify(secondRequest));
-          } else {
-            console.error(`Client not found for index: ${secondUser.index}`);
           }
         }
         break;
       }
       case 'add_ships': {
+        const body = JSON.parse(message.toString());
+        const bodyData = JSON.parse(body.data);
+        const turn = await getUserTurn(bodyData.gameId);
+        const turnBody = await handleFirstTurn(turn);
+        const resBody = await handleStartGame({gameId:bodyData.gameId, ships:bodyData.ships, indexPlayer:bodyData.indexPlayer});
+        ws.send(JSON.stringify(resBody));
+        ws.send(JSON.stringify(turnBody));
+        
         break;
       }
       case 'attack': {
+        const body = JSON.parse(message.toString());
+        const bodyData = JSON.parse(body.data);
+        const gameId = bodyData.gameId;
+        const currentPlayer = body.indexPlayer;
+        const turn = await getUserTurn(gameId);
+        if(turn == currentPlayer){
+            // handle attack
+        }
         break;
       }
       case 'randomAttack': {

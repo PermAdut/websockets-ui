@@ -29,7 +29,7 @@ export const handleJoinRoom = async(index:string,user:Omit<IUser, 'wins'>):Promi
 
 export const handleCreateGame = async(idGame:string,idPlayer:string) => {
     const result:IUpdateRoomRes = {
-        type:"createGame",
+        type:"create_game",
         data:JSON.stringify({idGame:idGame, idPlayer:idPlayer}),
         id:0,
     }
