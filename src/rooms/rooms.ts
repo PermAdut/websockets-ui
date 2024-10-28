@@ -23,6 +23,20 @@ export async function joinRoom(roomId:string,  user:Omit<IUser, 'wins'>):Promise
 
 }
 
+export async function deleteRoomByUserId(userId:string) {
+    const index = rooms.findIndex((el)=> el.roomUsers[0].index == userId);
+    rooms.splice(index, 1);
+}
+
+export async function isUserInRoom(userId:string):Promise<boolean> {
+    const index = rooms.findIndex((el)=> el.roomUsers[0].index == userId);
+    if(index == -1){
+        return false
+    } else {
+        return true;
+    }
+}
+
 export async function getRooms():Promise<IRoom[]> {
     return rooms;
 }

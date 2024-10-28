@@ -20,6 +20,20 @@ export async function getGameById(gameId:string) {
     return games[index];
 }
 
+export async function getGameWinner(userId:string):Promise<string> {
+    const index = games.findIndex(el => el.firstPlayerId == userId);
+    if(index != -1){
+        await deleteGame(games[index].idGame)
+        return games[index].secondPlayerId;
+    } 
+    const sIndex = games.findIndex(el => el.secondPlayerId == userId);
+    if(sIndex != -1){
+        await deleteGame(games[sIndex].idGame)
+        return games[index].firstPlayerId;
+    }
+    return '';
+}
+
 export async function addGame(game:ActiveGame) {
     games.push(game)
 }
@@ -56,3 +70,5 @@ export async function changeTurn(gameId:string) {
     const game = await getGameById(gameId);
     game.isFirst = !game.isFirst
 }
+
+

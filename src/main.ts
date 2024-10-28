@@ -12,9 +12,10 @@ import {
   handleCreateGame,
 } from './middleware/parseRooms.js';
 import { handleFirstTurn, handleStartGame } from './middleware/startGame.js';
-import { ActiveGame, addGame, addShpis, getGameById, getUserTurn, updateGameTurn } from './games/games.js';
+import { ActiveGame, addGame, addShpis, deleteGame, getGameById, getGameWinner, getUserTurn, updateGameTurn } from './games/games.js';
 import { addMatrix, checkWinner, handleAttack, handleRandomAttack, isMatrixExist } from './ships/shipsLogic.js';
 import { handleAttackBody, IAttackBody } from './middleware/handleAttack.js';
+import { deleteRoomByUserId, isUserInRoom } from './rooms/rooms.js';
 
 const HTTP_PORT: string = process.env.HTTP_PORT || '8181';
 const WSPORT: string = process.env.PORT || '3000';
@@ -59,9 +60,12 @@ wsServer.on('connection', (ws) => {
       case 'create_room': {
         const roomIndex = crypto.randomUUID();
         const user = await getUserById(clientId);
-        await handleCreateRoom(roomIndex, user as Omit<IUser, 'wins'>);
-        const updateRoomRes = await handleUpdateRooms();
-        broadcast(updateRoomRes);
+        const isInRoom = await isUserInRoom(user.index);
+        if(!isInRoom){
+            await handleCreateRoom(roomIndex, user as Omit<IUser, 'wins'>);
+            const updateRoomRes = await handleUpdateRooms();
+            broadcast(updateRoomRes);
+        }
         break;
       }
       case 'add_user_to_room': {
@@ -132,6 +136,7 @@ wsServer.on('connection', (ws) => {
            }
            const win = await checkWinner(gameId);
            if(win){
+            await deleteGame(gameId);
               const finishRes = {
                 type:"finish",
                 data:JSON.stringify({
@@ -151,6 +156,8 @@ wsServer.on('connection', (ws) => {
               await updateWins(playerId);
               const updateRes = await createUpdateResponse();
               broadcast(updateRes);
+              sessions.delete(playerId);
+              sessions.delete(win);
            } else {
             const userTurnId = await getUserTurn(gameId);
             const turn = await handleFirstTurn(userTurnId);
@@ -198,6 +205,7 @@ wsServer.on('connection', (ws) => {
     
             const win = await checkWinner(gameId);
             if (win) {
+                await deleteGame(gameId);
                 const finishRes = {
                     type: "finish",
                     data: JSON.stringify({
@@ -217,6 +225,8 @@ wsServer.on('connection', (ws) => {
                 await updateWins(playerId);
                 const updateRes = await createUpdateResponse();
                 broadcast(updateRes);
+                sessions.delete(playerId);
+                sessions.delete(win);
             } else {
                 const userTurnId = await getUserTurn(gameId);
                 const turn = await handleFirstTurn(userTurnId);
@@ -231,9 +241,36 @@ wsServer.on('connection', (ws) => {
   });
 
   ws.on('close', async () => {
-    // add handleDisconnection, close all rooms + update
+    if(await isUserInRoom(clientId)){
+        await deleteRoomByUserId(clientId);
+    }
+    let playerId = "";
+    for (const [key, val] of clients.entries()) {
+        if (val == ws) {
+            playerId = key;
+        }
+    }
+    if(playerId){
+        const win = await getGameWinner(playerId);
+        const secondSocket = sessions.get(win);
+        secondSocket?.send(JSON.stringify({
+            type:"finish",
+            data:JSON.stringify({
+                winPlayer:win
+            }),
+            id:0,
+        }))
+        ws.send(JSON.stringify({
+            type:"finish",
+            data:JSON.stringify({
+                winPlayer:win
+            }),
+            id:0,
+        }))
+        sessions.delete(playerId);
+        sessions.delete(win)
+    }
     await deleteUser(clientId);
-    console.log('Client disconnected');
     clients.delete(clientId);
   });
 });
