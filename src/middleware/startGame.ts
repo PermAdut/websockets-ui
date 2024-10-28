@@ -1,29 +1,22 @@
 interface IGame{
-    ships:IShpis[],
+    ships:IShips[],
     currentPlayerIndex:string,
 }
 
 interface ReqBody{
     gameId:string,
-    ships:IShpis[],
+    ships:IShips[],
     indexPlayer:string,
 }
 
-interface IShpis{
+export interface IShips{
     position:{
         x:number,
         y:number
     },
     direction:boolean,
     length:number,
-    type: shipType
-}
-
-enum shipType {
-    small = "small",
-    medium = "medium",
-    large = "large",
-    huge = "huge",
+    type: string
 }
 
 interface ResBody{
@@ -34,9 +27,7 @@ interface ResBody{
 
 interface TurnResBody{
     type:string,
-    data:{
-        currentPlayer:string,
-    }
+    data:string,
     id:number,
 }
 
@@ -55,9 +46,9 @@ export async function handleStartGame(data:ReqBody):Promise<ResBody>{
 export async function handleFirstTurn(currentPlayer:string):Promise<TurnResBody> {
     const result:TurnResBody = {
         type:"turn",
-        data:{
+        data:JSON.stringify({
             currentPlayer:currentPlayer
-        },
+        }),
         id:0
     }
     return result;

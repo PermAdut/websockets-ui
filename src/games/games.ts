@@ -1,8 +1,12 @@
+import { IShips } from "src/middleware/startGame.js";
+
 export interface ActiveGame{
     idGame:string,
     firstPlayerId:string,
     secondPlayerId:string,
     isFirst:boolean,
+    shipsFirst?:IShips[],
+    shipsSecond?:IShips[],
 }
 
 const games: ActiveGame[] = [];
@@ -20,9 +24,23 @@ export async function addGame(game:ActiveGame) {
     games.push(game)
 }
 
+export async function addShpis(userId:string, gameId:string, ships:IShips[]) {
+    const game = await getGameById(gameId);
+    if(userId === game.firstPlayerId){
+        game.shipsFirst = ships
+    } else {
+        game.shipsSecond = ships
+    }
+}
+
 export async function deleteGame(gameId:string) {
     const index = games.findIndex(el => el.idGame == gameId)
     games.splice(index, 1);
+}
+
+export async function updateGameTurn(gameId:string) {
+    const game = await getGameById(gameId);
+    game.isFirst = !game.isFirst;
 }
 
 export async function getUserTurn(gameId:string) {

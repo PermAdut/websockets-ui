@@ -19,6 +19,11 @@ export const getUserById = async (index: string): Promise<IUser> => {
   return users[userIndex];
 };
 
+export const updateWins = async (index:string):Promise<void> => {
+  const userIndex = users.findIndex((el) => el.index == index);
+  users[userIndex].wins++;
+}
+
 export const addUser = async (user: IUserData): Promise<boolean> => {
   const index = users.findIndex((el) => el.name == user.name);
   if (index == -1) {
